@@ -7,10 +7,10 @@
 #define RASTER_WIDTH 500
 #define RASTER_HEIGHT 500
 #define NUM_PIXELS (RASTER_WIDTH*RASTER_HEIGHT)
-#define GRASS_LEFT   126
-#define GRASS_TOP    285
-#define GRASS_RIGHT  162
-#define GRASS_BOTTOM 321
+#define GRASS_LEFT   285
+#define GRASS_TOP    125
+#define GRASS_RIGHT  322
+#define GRASS_BOTTOM 162
 #define grass_width  (GRASS_RIGHT  - GRASS_LEFT)
 #define grass_height (GRASS_BOTTOM - GRASS_TOP)
 #define masc1 0xFF000000
@@ -73,11 +73,14 @@ int main()
 		}
 	}
 
+
+
 	do {
 
 		ColorClean(0xFF000000);
 
 		Background_Tiles();
+
 
 		for (int tree = 0; tree < total_trees; tree++)
 		{
@@ -96,11 +99,11 @@ void ColorClean(Color pixel_color)
 {
 	for (int pixel_position = 0; pixel_position < NUM_PIXELS; pixel_position++)
 	{
-		SCREEN_ARRAY[pixel_position] = BGRAtoARGB(pixel_color);
+		SCREEN_ARRAY[pixel_position] = pixel_color;
 	}
 }
 
-int D2_to_D1(int y, int x, int D2_width)
+int D2_to_D1(int x, int y, int D2_width)
 {
 	return ((y * D2_width) + x);
 }
@@ -111,7 +114,7 @@ void DrawPixel(int x, int y, Color pixel_color)
 
 	if (x >= 0 && x < RASTER_WIDTH && y >= 0 && y < RASTER_HEIGHT)
 	{
-		SCREEN_ARRAY[dimension] = BGRAtoARGB(pixel_color);
+		SCREEN_ARRAY[dimension] = pixel_color;
 	}
 	else
 	{
@@ -123,6 +126,12 @@ void BLIT(const unsigned int* Source_Array, unsigned int* Screen_Array, unsigned
 {
 	unsigned int copy_width = Source_Rect.right - Source_Rect.left;
 	unsigned int copy_height = Source_Rect.bottom - Source_Rect.top;
+
+	if (Source_Rect.left >= Source_Rect.right ||
+		Source_Rect.top >= Source_Rect.bottom)
+	{
+		return;
+	}
 
 	for (unsigned int y = 0; y < copy_height; y++)
 	{
@@ -137,8 +146,14 @@ void BLIT(const unsigned int* Source_Array, unsigned int* Screen_Array, unsigned
 			if (dst_x >= Screen_Width || dst_y >= Screen_Height)
 				continue;
 
-			unsigned int src_index = D2_to_D1(src_y, src_x, Source_Width);
-			unsigned int dst_index = D2_to_D1(dst_y, dst_x, Screen_Width);
+			if (src_x >= Source_Width || src_y >= Source_Height)
+			{
+				std::cout << "OUT OF BOUNDS\n";
+				continue;
+			}
+
+			unsigned int src_index = D2_to_D1(src_x, src_y, Source_Width);
+			unsigned int dst_index = D2_to_D1(dst_x, dst_y, Screen_Width);
 			unsigned int converted = BGRAtoARGB(Source_Array[src_index]);
 			Screen_Array[dst_index] = AlphaBlending(Screen_Array[dst_index], converted);
 		}
@@ -209,7 +224,7 @@ unsigned AlphaBlending(unsigned int DestinationColor, unsigned int SourceColor)
 
 	float AlphaRatio = SrcA / 255.0f;
 
-	unsigned int FinalA = (unsigned int)(AlphaRatio * SrcA + (1.0f - AlphaRatio) * DstA);
+	unsigned int FinalA = (unsigned int)(SrcA + DstA * (1.0f - AlphaRatio));
 	unsigned int FinalR = (unsigned int)(AlphaRatio * SrcR + (1.0f - AlphaRatio) * DstR);
 	unsigned int FinalG = (unsigned int)(AlphaRatio * SrcG + (1.0f - AlphaRatio) * DstG);
 	unsigned int FinalB = (unsigned int)(AlphaRatio * SrcB + (1.0f - AlphaRatio) * DstB);
