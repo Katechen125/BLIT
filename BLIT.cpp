@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <ctime>
 #include "RasterSurface.h"
 #include "XTime.h"
 #include "Tiles.h"
@@ -23,6 +24,20 @@
 #define Tree_BOTTOM 95
 #define Tree_width  (Tree_RIGHT  - Tree_LEFT)
 #define Tree_height (Tree_BOTTOM - Tree_TOP)
+#define CellWidth (Fire_Animation_width/8)
+#define CellHeight (Fire_Animation_height/8)
+#define Sign_LEFT   175
+#define Sign_TOP    177
+#define Sign_RIGHT  225
+#define Sign_BOTTOM 192
+#define Sign_width  (Sign_RIGHT  - Sign_LEFT)
+#define Sign_height (Sign_BOTTOM - Sign_TOP)
+#define House_LEFT   127
+#define House_TOP    31
+#define House_RIGHT  191
+#define House_BOTTOM 94
+#define House_width  (House_RIGHT  - House_LEFT)
+#define House_height (House_BOTTOM - House_TOP)
 
 unsigned int SCREEN_ARRAY[NUM_PIXELS];
 typedef unsigned int Color;
@@ -41,11 +56,18 @@ unsigned AlphaBlending(unsigned int DestinationColor, unsigned int SourceColor);
 
 int main()
 {
-	RS_Initialize("Katherine Chen", RASTER_WIDTH, RASTER_HEIGHT);
+	RS_Initialize("Katherine Chen, Lab 1", RASTER_WIDTH, RASTER_HEIGHT);
+
+	srand((unsigned int)time(NULL));
 
 	int total_trees = 10;
 	unsigned int tree_positions[10][2];
 	int placed = 0;
+	unsigned int CurrentX_Fire = 0;
+	unsigned int CurrentY_Fire = 0;
+	Rectangle_KC src_animation = {};
+	XTime time;
+	double accumulator = 0;
 
 	while (placed < total_trees)
 	{
@@ -65,6 +87,34 @@ int main()
 				break;
 			}
 		}
+
+		int dx_fire = (int)new_x - (int)(RASTER_WIDTH / 2);
+		int dy_fire = (int)new_y - (int)(RASTER_HEIGHT / 2);
+		if (dx_fire < 0) dx_fire = -dx_fire;
+		if (dy_fire < 0) dy_fire = -dy_fire;
+		if (dx_fire < (int)CellWidth && dy_fire < (int)CellHeight)
+		{
+			collision = true;
+		}
+
+		int dx_sign = (int)new_x - (int)(20);
+		int dy_sign = (int)new_y - (int)(450);
+		if (dx_sign < 0) dx_sign = -dx_sign;
+		if (dy_sign < 0) dy_sign = -dy_sign;
+		if (dx_sign < (int)Sign_width && dy_sign < (int)Sign_height)
+		{
+			collision = true;
+		}
+
+		int dx_House = (int)new_x - (int)(420);
+		int dy_House = (int)new_y - (int)(10);
+		if (dx_House < 0) dx_House = -dx_House;
+		if (dy_House < 0) dy_House = -dy_House;
+		if (dx_House < (int)House_width && dy_House < (int)House_height)
+		{
+			collision = true;
+		}
+
 		if (!collision)
 		{
 			tree_positions[placed][0] = new_x;
@@ -77,11 +127,14 @@ int main()
 
 	do {
 
+		time.Signal();
+
 		ColorClean(0xFF000000);
 
+		//Grass
 		Background_Tiles();
 
-
+		//Tree
 		for (int tree = 0; tree < total_trees; tree++)
 		{
 			Rectangle_KC src_rect = { Tree_LEFT, Tree_TOP, Tree_RIGHT, Tree_BOTTOM };
@@ -90,7 +143,51 @@ int main()
 				tree_positions[tree][0], tree_positions[tree][1]);
 		}
 
+		//Fire
+		accumulator += time.SmoothDelta();
+
+		if (accumulator >= (1.0 / 30.0)) {
+
+			accumulator -= (1.0 / 30.0);
+
+			CurrentX_Fire += CellWidth;
+			if (CurrentX_Fire >= Fire_Animation_width)
+			{
+
+				CurrentX_Fire = 0;
+				CurrentY_Fire += CellHeight;
+
+				if (CurrentY_Fire >= Fire_Animation_height)
+				{
+					CurrentX_Fire = 0;
+					CurrentY_Fire = 0;
+				}
+			}
+
+			src_animation = { CurrentX_Fire,  CurrentY_Fire,  CurrentX_Fire + CellWidth,  CurrentY_Fire + CellHeight };
+
+		}
+
+
+		BLIT(Fire_Animation_pixels, SCREEN_ARRAY, Fire_Animation_width, Fire_Animation_height,
+			RASTER_WIDTH, RASTER_HEIGHT, src_animation,
+			RASTER_WIDTH / 2, RASTER_HEIGHT / 2);
+
+		//Signs
+		Rectangle_KC src_signs = { Sign_LEFT, Sign_TOP, Sign_RIGHT, Sign_BOTTOM };
+		BLIT(Tiles_pixels, SCREEN_ARRAY, Tiles_width, Tiles_height,
+			RASTER_WIDTH, RASTER_HEIGHT, src_signs,
+			20, 450);
+
+		//House
+		Rectangle_KC src_house = { House_LEFT, House_TOP, House_RIGHT, House_BOTTOM };
+		BLIT(Tiles_pixels, SCREEN_ARRAY, Tiles_width, Tiles_height,
+			RASTER_WIDTH, RASTER_HEIGHT, src_house,
+			420, 10);
+
+
 	} while (RS_Update(SCREEN_ARRAY, NUM_PIXELS));
+
 
 	RS_Shutdown();
 }
