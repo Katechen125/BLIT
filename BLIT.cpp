@@ -30,8 +30,8 @@
 #define Sign_TOP    177
 #define Sign_RIGHT  225
 #define Sign_BOTTOM 192
-#define Sign_width  (Sign_RIGHT  - Sign_LEFT)
-#define Sign_height (Sign_BOTTOM - Sign_TOP)
+#define Sign_width  (Sign_RIGHT  - Sign_LEFT)*2
+#define Sign_height (Sign_BOTTOM - Sign_TOP)*2
 #define House_LEFT   127
 #define House_TOP    31
 #define House_RIGHT  191
